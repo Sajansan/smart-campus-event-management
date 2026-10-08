@@ -7,8 +7,11 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "check": "node --check src/server.js && node --check src/config/database.js && node --check src/scripts/check-db.js",
-    "db:check": "node src/scripts/check-db.js"
+    "check": "node scripts/checkSyntax.js",
+    "test": "node --test",
+    "db:check": "node src/scripts/check-db.js",
+    "admin:create": "node scripts/createAdmin.js",
+    "db:setup": "node scripts/setupDatabase.js"
   },
   "keywords": [],
   "author": "",

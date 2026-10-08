@@ -1,14 +1,14 @@
-const sequelize = require("../config/database");
+const pool = require("../config/db");
 
 async function checkDatabase() {
   try {
-    await sequelize.authenticate();
+    await pool.query("SELECT 1");
     console.log("MySQL connection successful.");
   } catch (error) {
-    console.error("MySQL connection failed:", error.message);
+    console.error("MySQL connection failed. Check the service and backend/.env settings.", error.code);
     process.exitCode = 1;
   } finally {
-    await sequelize.close();
+    await pool.end();
   }
 }
 
