@@ -85,3 +85,13 @@ Integration tests require permission to create/drop a temporary database, named 
 ## Demo data
 
 The running local database contains a manually provisioned admin, three students, three events, and six registrations. [DEMO_DATA.md](DEMO_DATA.md) records the live API checks and IDs. Login passwords are in the ignored `.env.demo.local`; [ADMIN_SETUP.md](ADMIN_SETUP.md) maps each email to its password key. With the backend running, `npm run db:demo` reuses this data and verifies both roles without resetting existing passwords/events.
+
+## Shared Aiven database
+
+The active `backend/.env` now points to Aiven. The migration copied and compared all fields in 5 users, 4 events, and 7 registrations, preserving IDs, password hashes, roles and timestamps. The full MySQL integration suite passed on Aiven in an isolated temporary database, which was removed afterward.
+
+On your home PC, privately copy the active `backend/.env` and `backend/certs/ca.pem` into the same locations, then start the backend normally. Both PCs use the same data immediately. Keep environment files out of Git; application and schema changes can still be pushed and pulled. `DB_SSL_CA=certs/ca.pem` enables certificate and hostname verification. Database sessions use Sri Lanka time for event deadlines.
+
+Your original local MySQL database remains available. Its settings are saved in `.env.local-backup`; a migration snapshot is in `.local/pre-aiven-snapshot.json`. These files are ignored by Git. `scripts/migrateToAiven.js` is a one-time migration and refuses to import into an existing cloud schema.
+
+Confirm the Aiven service plan is **Free** in Service settings; the trial banner does not identify the selected plan.

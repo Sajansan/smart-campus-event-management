@@ -8,10 +8,8 @@ async function main() {
   try {
     if (process.env.DB_NAME !== "smart_campus_db") throw new Error("Set DB_NAME=smart_campus_db before importing the MVP schema.");
     connection = await mysql.createConnection({
-      host: process.env.DB_HOST,
-      port: Number(process.env.DB_PORT || 3306),
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
+      ...require('../src/config/dbOptions')(),
+      database: undefined,
       multipleStatements: true,
     });
     // Check existing tables before applying CREATE TABLE IF NOT EXISTS.

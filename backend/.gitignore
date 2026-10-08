@@ -12,6 +12,7 @@ build/
 
 # logs
 *.log
+.local/
 
 # IDE
 .vscode/

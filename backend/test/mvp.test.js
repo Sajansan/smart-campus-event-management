@@ -17,7 +17,7 @@ process.env.JWT_SECRET = crypto.randomBytes(32).toString('hex');
 
 before(async () => {
   if (integration) {
-    adminConnection = await mysql.createConnection({ host: process.env.DB_HOST, port: Number(process.env.DB_PORT || 3306), user: process.env.DB_USER, password: process.env.DB_PASSWORD, multipleStatements: true });
+    adminConnection = await mysql.createConnection({ ...require('../src/config/dbOptions')(), database: undefined, multipleStatements: true });
     await adminConnection.query(`CREATE DATABASE \`${testDb}\``);
     createdDatabase = true;
     const schema = fs.readFileSync(path.resolve(__dirname, '../database/schema.sql'), 'utf8').replaceAll('smart_campus_db', testDb);
