@@ -11,7 +11,9 @@
     "test": "node --test",
     "db:check": "node src/scripts/check-db.js",
     "admin:create": "node scripts/createAdmin.js",
-    "db:setup": "node scripts/setupDatabase.js"
+    "db:setup": "node scripts/setupDatabase.js",
+    "db:demo": "node scripts/demoData.js",
+    "admin:hash": "node scripts/hashAdminPassword.js"
   },
   "keywords": [],
   "author": "",

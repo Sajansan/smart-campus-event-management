@@ -38,7 +38,7 @@ API: `http://localhost:5000`. `npm start` runs without nodemon. Startup requires
 
 ## Initial admin
 
-There is no public admin signup. Set `ADMIN_NAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` temporarily in your ignored `.env`, then run:
+For manual creation in MySQL Workbench, follow [ADMIN_SETUP.md](ADMIN_SETUP.md): generate a bcrypt hash, insert the admin row directly, and log in through the shared API. There is no public admin signup. Set `ADMIN_NAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` temporarily in your ignored `.env`, then run:
 
 ```powershell
 npm run admin:create
@@ -81,3 +81,7 @@ Remove-Item Env:RUN_DB_TESTS
 ```
 
 Integration tests require permission to create/drop a temporary database, named `smart_campus_mvp_test_*`. They never use production tables. See [POSTMAN_TESTING.md](POSTMAN_TESTING.md) for the ordered demonstration guide. Attendance, feedback, notifications, reports and other future modules are excluded.
+
+## Demo data
+
+The running local database contains a manually provisioned admin, three students, three events, and six registrations. [DEMO_DATA.md](DEMO_DATA.md) records the live API checks and IDs. Login passwords are in the ignored `.env.demo.local`; [ADMIN_SETUP.md](ADMIN_SETUP.md) maps each email to its password key. With the backend running, `npm run db:demo` reuses this data and verifies both roles without resetting existing passwords/events.

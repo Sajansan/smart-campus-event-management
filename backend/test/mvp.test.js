@@ -88,8 +88,8 @@ test('Input validation rejects impossible dates, capacity and oversized bcrypt p
 });
 
 test('Real MySQL: all 11 MVP flows, duplicate/deadline/capacity rules and cascade deletion', { skip: !integration }, async () => {
-  const users = require('../src/models/userModel');
-  await users.create({ name: 'Test Admin', email: 'admin@example.com', password: await bcrypt.hash('admin-password', 12), role: 'admin' });
+  // Admin is manually provisioned in the DB; public signup is only for students.
+  await pool.execute("INSERT INTO users (student_id, name, email, password, role) VALUES (NULL, ?, ?, ?, 'admin')", ['Test Admin', 'admin@example.com', await bcrypt.hash('admin-password', 12)]);
   const signup = { studentId: 'TEST001', name: 'John', email: 'john@example.com', password: 'password123', role: 'admin' };
   const registered = await request('POST', '/api/auth/register', signup);
   expectStatus(registered, 201);
@@ -123,6 +123,10 @@ test('Real MySQL: all 11 MVP flows, duplicate/deadline/capacity rules and cascad
   expectStatus(registration, 201);
   assert.equal(registration.body.data.studentId, login.body.user.id);
   expectStatus(await request('POST', `/api/registrations/${id}`, undefined, student), 409);
+  await assert.rejects(pool.execute('INSERT INTO event_registrations (student_id, event_id) VALUES (?, ?)', [login.body.user.id, id]), { code: 'ER_DUP_ENTRY' });
+  await assert.rejects(pool.execute('INSERT INTO event_registrations (student_id, event_id) VALUES (?, ?)', [login.body.user.id, 2147483647]), { code: 'ER_NO_REFERENCED_ROW_2' });
+  await assert.rejects(pool.execute('INSERT INTO event_registrations (student_id, event_id) VALUES (?, ?)', [2147483647, id]), { code: 'ER_NO_REFERENCED_ROW_2' });
+  await assert.rejects(pool.execute("UPDATE users SET role = 'superadmin' WHERE id = ?", [login.body.user.id]), { code: 'WARN_DATA_TRUNCATED' });
   const mine = await request('GET', '/api/registrations/my', undefined, student);
   expectStatus(mine, 200);
   assert.equal(mine.body.data[0].id, id);
