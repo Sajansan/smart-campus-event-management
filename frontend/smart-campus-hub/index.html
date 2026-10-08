@@ -4,8 +4,18 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Campus events at Don Bosco Info Tech." />
-    <title>Smart Campus Event Management</title>
+    <meta name="theme-color" content="#7042b5" />
+    <meta name="description" content="Discover events, find your people, and make more of campus life at Don Bosco Info Tech." />
+    <script>
+      (() => {
+        let preference;
+        try { preference = localStorage.getItem('dbit:theme:v1'); } catch {}
+        const theme = preference === 'dark' || preference === 'light' ? preference : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+        document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#18121f' : '#7042b5';
+      })();
+    </script>
+    <title>DBIT Campus Life — Your next campus moment</title>
   </head>
   <body>
     <div id="root"></div>
