@@ -17,7 +17,7 @@ export function saveSession(session: Session | null) {
   else sessionStorage.removeItem(key)
 }
 export async function api<T>(route: string, options: { token?: string; method?: string; body?: unknown; signal?: AbortSignal } = {}): Promise<T> {
-  const base = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '')
+  const base = (import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_URL || 'https://smart-campus-event-management-production-1133.up.railway.app/api')).replace(/\/$/, '')
   let response: Response
   try {
     response = await fetch(base + route, {
