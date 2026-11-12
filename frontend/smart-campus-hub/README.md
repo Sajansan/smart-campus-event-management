@@ -4,7 +4,15 @@ React + TypeScript frontend for the Smart Campus Event Management MVP. Its purpl
 
 ## Local development
 
-Start MySQL and the backend first:
+The frontend uses the deployed Railway backend by default:
+`https://smart-campus-event-management-production-1133.up.railway.app/api`.
+Run `npm ci` and `npm run dev` from this folder to test against it.
+Development always uses relative `/api` requests through Vite's Railway proxy,
+avoiding browser CORS issues and ignoring `VITE_API_URL` during `npm run dev`.
+For a deployed frontend, set backend `CLIENT_ORIGIN` in Railway to that frontend's origin.
+
+To use a local backend instead, change the proxy target in `vite.config.ts` to
+`http://127.0.0.1:5000` and restart Vite. Start MySQL and the backend first:
 
 ```powershell
 npm --prefix backend run dev
@@ -17,7 +25,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173. Vite proxies `/api` to http://127.0.0.1:5000, keeping database credentials and JWT secrets entirely in the backend. If port 5173 is already serving this project, reuse that server.
+Open http://localhost:5173. Vite proxies `/api` to the configured backend, keeping database credentials and JWT secrets entirely in the backend. If port 5173 is already serving this project, reuse that server.
 
 For separate hosting, set `VITE_API_URL` to the backend API URL (including `/api`) in an ignored `.env.local`, configure backend `CLIENT_ORIGIN` to the frontend origin, and rebuild. Never put DB credentials or JWT secrets in frontend environment variables. See `.env.example`.
 
