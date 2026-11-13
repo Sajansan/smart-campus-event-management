@@ -27,6 +27,6 @@ Temporary QA account/event/registration were removed. Original demo data remains
 
 Use the accounts mapped in `backend/ADMIN_SETUP.md`; local passwords are in the ignored `backend/.env.demo.local`. They are not in frontend source, screenshots, or build output.
 
-## Purple theme and dark mode
+## Ice, navy, and tangerine liquid-glass theme
 
-Replaced the green palette with purple and lavender across the application. Verified the light/dark toggle, persistence across reload, and matching event detail, admin form/table, and sign-in colors. Reviewed desktop and mobile appearance with no page overflow. The device theme is used before any explicit local preference is saved. Browser theme-color and native form color-scheme follow the selected theme.
+Replaced the green palette with ice blue, midnight navy, and tangerine across the application, using curved glass surfaces, pill controls, and ambient gradients. Verified the light/dark toggle, persistence across reload, and matching event detail, admin form/table, and sign-in colors. Reviewed desktop and mobile appearance with no page overflow. The device theme is used before any explicit local preference is saved. Browser theme-color and native form color-scheme follow the selected theme.

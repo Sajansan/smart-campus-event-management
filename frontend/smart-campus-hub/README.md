@@ -1,6 +1,6 @@
 # DBIT Campus Life
 
-React + TypeScript frontend for the Smart Campus Event Management MVP. Its purple editorial design, custom event posters, and responsive student/admin workspaces connect to the existing Express + MySQL backend.
+React + TypeScript frontend for the Smart Campus Event Management MVP. Its ice-blue, midnight-navy, and tangerine liquid-glass design, custom event posters, and responsive student/admin workspaces connect to the existing Express + MySQL backend.
 
 ## Local development
 

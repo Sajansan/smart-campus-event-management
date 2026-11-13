@@ -4,7 +4,7 @@ import Icon from './Icon'
 type Theme = 'light' | 'dark'
 function applyTheme(theme: Theme) {
   document.documentElement.dataset.theme = theme
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#18121f' : '#7042b5')
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#0c1826' : '#172c45')
 }
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>(() => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light')
