@@ -98,6 +98,7 @@ function App() {
   const categories = ['All events', ...new Set(events.map(event => event.category).filter((value): value is string => Boolean(value)))]
   const registeredIds = new Set(mine.map(event => event.id))
   const upcoming = events.filter(isUpcoming)
+  const spotlight = upcoming[0] || events[0]
   const source = view === 'mine' ? mine : view === 'manage' ? events : upcoming
   const visible = source.filter(event => (!search || `${event.title} ${event.description || ''} ${event.location || ''}`.toLowerCase().includes(search.toLowerCase())) && (category === 'All events' || event.category === category) && (!date || event.event_date === date))
   const firstName = session.user.name.split(' ')[0]
@@ -113,7 +114,64 @@ function App() {
     </aside>
     <div className="main-shell" inert={menuOpen}><header className="topbar"><div className="topbar-left"><button className="icon-button mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Open navigation" aria-expanded={menuOpen}><Icon name="menu"/></button><span>Campus life</span><Icon name="chevron" size={13}/><b>{navItems.find(item => item.view === view)?.label || 'Overview'}</b></div><div className="topbar-right"><ThemeToggle/><span className="topbar-date">{new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Colombo' }).format(new Date())}</span><span className="topbar-divider"/><div className="profile"><span className="avatar">{session.user.name.split(' ').map(word => word[0]).slice(0, 2).join('')}</span><span><b>{session.user.name}</b><small>{admin ? 'Administrator' : session.user.studentId || 'Student'}</small></span></div></div></header>
       <main id="main-content" className="workspace"><div className="page-heading"><div><span className="eyebrow">{view === 'overview' ? 'A GOOD DAY STARTS HERE' : view === 'mine' ? 'SAVED YOU A PLACE' : admin && view === 'manage' ? 'THE CAMPUS EDIT' : 'OUTSIDE THE CLASSROOM'}</span><h1>{title}</h1><p>{subtitle}</p></div>{admin ? <button className="button primary" onClick={() => setEditor('new')}><Icon name="plus" size={18}/> Create event</button> : view === 'mine' ? <button className="button secondary" onClick={() => navigate('events')}>Find something new<Icon name="arrow" size={18}/></button> : <span className="semester-tag"><span className="live-dot"/> CAMPUS IS CALLING</span>}</div>
-      {view === 'overview' ? <><section className="campus-hero"><div className="hero-copy"><span className="eyebrow">GOOD THINGS HAPPEN TOGETHER</span><h2>{admin ? <>A little spark.<br/><em>A bigger campus.</em></> : <>Make room for<br/><em>something good.</em></>}</h2><p>{admin ? 'Bring your community together, one thoughtfully planned event at a time.' : 'New skills. Familiar faces. Unexpected connections. Your next great moment might be right here.'}</p><button className="button hero-button" onClick={() => navigate(admin ? 'manage' : 'events')}>{admin ? 'Manage campus events' : 'Explore what’s happening'}<Icon name="arrow" size={18}/></button></div><div className="hero-art" aria-hidden="true"><span className="hero-circle circle-a"/><span className="hero-circle circle-b"/><span className="hero-circle circle-c"/><span className="hero-petal petal-a"/><span className="hero-petal petal-b"/><div className="hero-art-caption">THE BEST PART?<br/><b>YOU’RE PART OF IT.</b></div><span className="hero-star">✳</span></div><span className="hero-edition">DBIT / THE CAMPUS COLLECTIVE</span></section>
+      {view === 'overview' ? <><section className="campus-hero"><div className="hero-copy"><span className="eyebrow">GOOD THINGS HAPPEN TOGETHER</span><h2>{admin ? <>A little spark.<br/><em>A bigger campus.</em></> : <>Make room for<br/><em>something good.</em></>}</h2><p>{admin ? 'Bring your community together, one thoughtfully planned event at a time.' : 'New skills. Familiar faces. Unexpected connections. Your next great moment might be right here.'}</p><button className="button hero-button" onClick={() => navigate(admin ? 'manage' : 'events')}>{admin ? 'Manage campus events' : 'Explore what’s happening'}<Icon name="arrow" size={18}/></button></div><div className="hero-art">
+          <div className="hero-ticket-wrap">
+            <div
+              className={`hero-ticket ${spotlight ? 'is-interactive' : ''}`}
+              onClick={spotlight ? () => openEvent(spotlight) : undefined}
+              role={spotlight ? 'button' : undefined}
+              tabIndex={spotlight ? 0 : undefined}
+              onKeyDown={spotlight ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEvent(spotlight) } } : undefined}
+              aria-label={spotlight ? `Spotlight event: ${cleanTitle(spotlight)}` : 'Campus event pass'}
+            >
+              <div className="ticket-top">
+                <div className="ticket-badge">
+                  <span className="ticket-live-dot" />
+                  <span>{admin ? 'CAMPUS SPOTLIGHT' : 'NEXT ON CAMPUS'}</span>
+                </div>
+                <span className="ticket-category">{spotlight?.category || 'Campus Life'}</span>
+              </div>
+
+              <div className="ticket-main">
+                <h3 className="ticket-title">{spotlight ? cleanTitle(spotlight) : 'DBIT Annual Campus Fest & Showcase'}</h3>
+                <div className="ticket-meta">
+                  <span className="ticket-meta-item">
+                    <Icon name="calendar" size={13} />
+                    <span>{spotlight ? `${dateLabel(spotlight.event_date)}${spotlight.start_time ? ` · ${timeLabel(spotlight.start_time)}` : ''}` : 'Friday · 10:00 AM'}</span>
+                  </span>
+                  <span className="ticket-meta-item">
+                    <Icon name="pin" size={13} />
+                    <span>{spotlight?.location || 'Main Auditorium'}</span>
+                  </span>
+                </div>
+              </div>
+
+              <div className="ticket-perforated" aria-hidden="true">
+                <span className="ticket-notch notch-left" />
+                <span className="ticket-dash" />
+                <span className="ticket-notch notch-right" />
+              </div>
+
+              <div className="ticket-bottom">
+                <div className="ticket-status-col">
+                  <span className="ticket-capacity">
+                    <Icon name="users" size={12} />
+                    <span>{spotlight?.capacity ? `${spotlight.capacity} places total` : 'Open campus registration'}</span>
+                  </span>
+                  <span className="ticket-stub-id">ADMIT ONE · PASS #{spotlight ? String(spotlight.id).padStart(4, '0') : '2026'}</span>
+                </div>
+                <div className="ticket-barcode" aria-hidden="true">
+                  <span /><span /><span /><span /><span /><span /><span /><span /><span /><span />
+                </div>
+              </div>
+            </div>
+
+            <div className="ticket-human-note">
+              <span className="ticket-pin-icon"><Icon name="pin" size={12} /></span>
+              <span>{admin ? 'Click pass to view details & registrations' : 'Show this pass or your student ID at the entrance'}</span>
+            </div>
+          </div>
+        </div><span className="hero-edition">DBIT / THE CAMPUS COLLECTIVE</span></section>
       <div className="stat-row"><div><span className="stat-icon"><Icon name="calendar"/></span><span><b>{loading ? '—' : upcoming.length}</b><small>Upcoming events</small></span><span className="stat-hint">Something to look forward to</span></div><div><span className="stat-icon"><Icon name={admin ? 'edit' : 'ticket'}/></span><span><b>{loading ? '—' : admin ? events.length : mine.length}</b><small>{admin ? 'Events on campus' : 'Your registrations'}</small></span><span className="stat-hint">{admin ? 'Ideas brought to life' : 'A place with your name on it'}</span></div><div><span className="stat-icon"><Icon name="grid"/></span><span><b>{loading ? '—' : categories.length - 1}</b><small>Ways to get involved</small></span><span className="stat-hint">Follow your curiosity</span></div></div></> : null}
       <section className="events-section" aria-label={view === 'mine' ? 'Your registered events' : 'Campus events'}><div className="section-heading"><div><h2>{view === 'overview' ? 'On the campus calendar' : view === 'mine' ? 'Your campus moments' : view === 'manage' ? 'All campus events' : 'The campus calendar'}</h2><span className="section-count">{loading ? 'Finding your events…' : `${visible.length} ${visible.length === 1 ? 'event' : 'events'}${view === 'mine' ? ' on your list' : ' to explore'}`}</span></div>{view === 'overview' ? <button className="text-button" onClick={() => navigate('events')}>View all events<Icon name="arrow" size={17}/></button> : <button className="text-button" onClick={refresh} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh events'}</button>}</div>
         <div className="filter-bar"><div className="search-field"><Icon name="search" size={18}/><input aria-label="Search events" placeholder="Find an event, a topic, a place…" value={search} onChange={e => setSearch(e.target.value)}/>{search ? <button className="icon-button" aria-label="Clear search" onClick={() => setSearch('')}><Icon name="close" size={16}/></button> : null}</div><label className="date-filter"><Icon name="calendar" size={17}/><input type="date" aria-label="Filter by date" value={date} onInput={e => setDate(e.currentTarget.value)} onChange={e => setDate(e.target.value)}/></label></div>

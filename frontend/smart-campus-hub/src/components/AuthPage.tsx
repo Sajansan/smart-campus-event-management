@@ -13,7 +13,14 @@ export default function AuthPage({ onLogin }: { onLogin: (session: Session) => v
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    const body = { name: String(form.get('name') || ''), studentId: String(form.get('studentId') || ''), email: String(form.get('email') || ''), password: String(form.get('password') || '') }
+    const body = { 
+      name: String(form.get('name') || ''), 
+      studentId: String(form.get('studentId') || ''), 
+      email: String(form.get('email') || ''), 
+      password: String(form.get('password') || ''),
+      role: String(form.get('role') || 'student'),
+      department: String(form.get('department') || '')
+    }
     setBusy(true); setError('')
     try {
       if (signup) await api('/auth/register', { method: 'POST', body })
@@ -26,14 +33,59 @@ export default function AuthPage({ onLogin }: { onLogin: (session: Session) => v
     <section className="auth-story" aria-label="Welcome to DBIT Campus">
       <a href="#" className="brand"><span className="brand-mark"><Icon name="leaf" size={25}/></span><span>DBIT<span className="brand-sub">CAMPUS LIFE</span></span></a>
       <div className="auth-headline"><span className="eyebrow"><span className="live-dot"/> A LITTLE MORE THAN A CAMPUS</span><h1>Good people.<br/>Great ideas.<br/><em>Your next<br/>chapter.</em></h1><p>The workshops, the connections, the moments<br className="desktop-only"/> that make your time at Don Bosco your own.</p></div>
-      <div className="auth-art" aria-hidden="true"><div className="art-label">LEARN. CONNECT. BELONG.</div><div className="art-orbit orbit-one"/><div className="art-orbit orbit-two"/><div className="art-orbit orbit-three"/><span className="art-star">✳</span><span className="art-caption">A campus.<br/>A community.<br/>A world of possibility.</span></div>
+      <div className="auth-art" aria-hidden="true">
+        <div className="art-label">LEARN. CONNECT. BELONG.</div>
+        <span className="art-caption">A campus.<br/>A community.<br/>A world of possibility.</span>
+        <div className="auth-campus-pass">
+          <div className="pass-pill-header">
+            <span className="pass-dot" />
+            <span className="pass-brand-text">CAMPUS ACCESS</span>
+            <span className="pass-serial">№ 2026</span>
+          </div>
+          <div className="pass-content">
+            <span className="pass-title">Don Bosco Info Tech</span>
+            <span className="pass-desc">Official Student &amp; Event Portal</span>
+            <div className="pass-tags">
+              <span>Workshops</span>
+              <span>Hackathons</span>
+              <span>Fests</span>
+            </div>
+          </div>
+          <div className="pass-perforated">
+            <span className="pass-notch notch-left" />
+            <span className="pass-dash" />
+            <span className="pass-notch notch-right" />
+          </div>
+          <div className="pass-footer">
+            <div className="pass-barcode">
+              <span/><span/><span/><span/><span/><span/><span/><span/><span/>
+            </div>
+            <span className="pass-valid">VERIFIED STUDENT</span>
+          </div>
+        </div>
+      </div>
       <footer className="auth-footer"><span>DON BOSCO INFO TECH</span><span>Made for campus moments ↗</span></footer>
     </section>
     <section className="auth-form-area"><div className="auth-theme-toggle"><ThemeToggle/></div><div className="auth-mobile-brand">DBIT / CAMPUS LIFE</div><div className="auth-form-wrap">
       <span className="eyebrow">YOUR CAMPUS, CONNECTED</span><h2>{signup ? 'Find your place.' : 'Welcome back.'}</h2><p className="muted">{signup ? 'One account. A whole campus of possibilities.' : 'A good campus day starts here.'}</p>
       <div className="auth-tabs" aria-label="Account access"><button type="button" className={!signup ? 'active' : ''} onClick={() => { setSignup(false); setError('') }}>Sign in</button><button type="button" className={signup ? 'active' : ''} onClick={() => { setSignup(true); setError('') }}>Create account</button></div>
       <form onSubmit={submit} key={signup ? 'signup' : 'login'}>
-        {signup ? <div className="form-row"><label>Full name<input name="name" autoComplete="name" placeholder="Your full name" maxLength={100} required/></label><label>Student ID<input name="studentId" placeholder="e.g. DBIT001" maxLength={50} required/></label></div> : null}
+        {signup ? <>
+          <div className="form-row">
+            <label>Full name<input name="name" autoComplete="name" placeholder="Your full name" maxLength={100} required/></label>
+            <label>Role
+              <select name="role" defaultValue="student" style={{ width: '100%', height: '42px', borderRadius: '8px', padding: '0 10px', background: 'var(--surface-raised, #1e1e24)', color: 'inherit', border: '1px solid var(--border-subtle, #333)' }}>
+                <option value="student">Student</option>
+                <option value="organizer">Event Organizer</option>
+                <option value="coordinator">Department Coordinator</option>
+              </select>
+            </label>
+          </div>
+          <div className="form-row">
+            <label>Student / Staff ID<input name="studentId" placeholder="e.g. DBIT001" maxLength={50}/></label>
+            <label>Department<input name="department" placeholder="e.g. Computing, Engineering" maxLength={100}/></label>
+          </div>
+        </> : null}
         <label>Email address<input name="email" type="email" autoComplete="email" placeholder="you@example.com" maxLength={150} required/></label>
         <label>Password<span className="password-field"><input name="password" aria-label="Password" type={showPassword ? 'text' : 'password'} autoComplete={signup ? 'new-password' : 'current-password'} placeholder={signup ? 'At least 6 characters' : 'Enter your password'} minLength={signup ? 6 : undefined} required/><button className="icon-button" type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(!showPassword)}><Icon name={showPassword ? 'eyeOff' : 'eye'}/></button></span></label>
         {error ? <p className="form-error" role="alert">{error}</p> : null}

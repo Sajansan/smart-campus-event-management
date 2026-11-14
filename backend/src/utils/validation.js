@@ -54,6 +54,8 @@ function event(body) {
     description: text(body.description, "Description", 16000),
     category: text(body.category, "Category", 100),
     location: text(body.location, "Location", 150),
+    department: text(body.department, "Department", 100),
+    targetYear: body.targetYear ? Number(body.targetYear) : null,
     eventDate: date(body.eventDate),
     startTime: time(body.startTime),
     endTime: time(body.endTime),

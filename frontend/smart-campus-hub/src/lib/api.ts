@@ -1,15 +1,35 @@
-export type User = { id: number; studentId: string | null; name: string; email: string; role: 'student' | 'admin' }
+export type UserRole = 'student' | 'organizer' | 'coordinator' | 'admin'
+export type User = { id: number; studentId: string | null; name: string; email: string; role: UserRole; department?: string | null; academicYear?: number | null; status?: 'active' | 'suspended' }
 export type Session = { token: string; user: User }
-export type CampusEvent = { id: number; title: string; description: string | null; category: string | null; location: string | null; event_date: string; start_time: string | null; end_time: string | null; registration_deadline: string | null; capacity: number | null; created_by: number; registered_at?: string; registration_id?: number }
-export type Attendee = { registration_id: number; student_user_id: number; student_id: string; name: string; email: string; registered_at: string }
+export type CampusEvent = { 
+  id: number; 
+  title: string; 
+  description: string | null; 
+  category: string | null; 
+  location: string | null; 
+  department?: string | null;
+  target_year?: number | null;
+  event_date: string; 
+  start_time: string | null; 
+  end_time: string | null; 
+  registration_deadline: string | null; 
+  capacity: number | null; 
+  status?: 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'revision_requested' | 'published' | 'cancelled' | 'completed';
+  rejection_reason?: string | null;
+  created_by: number; 
+  registered_at?: string; 
+  registration_id?: number;
+  attendance_status?: 'pending' | 'present' | 'absent';
+}
+export type Attendee = { registration_id: number; student_user_id: number; student_id: string; name: string; email: string; registered_at: string; attendance_status?: string }
 export type Result<T> = { success: boolean; message: string; data: T }
-export type EventInput = { title: string; description: string; category: string; location: string; eventDate: string; startTime: string | null; endTime: string | null; registrationDeadline: string | null; capacity: number | null }
+export type EventInput = { title: string; description: string; category: string; location: string; eventDate: string; startTime: string | null; endTime: string | null; registrationDeadline: string | null; capacity: number | null; department?: string | null; targetYear?: number | null }
 
 const key = 'dbit:session:v1'
 export function readSession(): Session | null {
   try {
     const session = JSON.parse(sessionStorage.getItem(key) || 'null')
-    return session && typeof session.token === 'string' && typeof session.user?.id === 'number' && ['student', 'admin'].includes(session.user.role) ? session : null
+    return session && typeof session.token === 'string' && typeof session.user?.id === 'number' && ['student', 'organizer', 'coordinator', 'admin'].includes(session.user.role) ? session : null
   } catch { return null }
 }
 export function saveSession(session: Session | null) {
