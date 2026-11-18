@@ -1,4 +1,4 @@
-# Smart Campus MVP backend
+# Smart Campus backend
 
 JavaScript MVC API for Don Bosco Info Tech (DBIT). Requires Node.js 22+, npm, and MySQL 8+ (InnoDB).
 
@@ -27,7 +27,7 @@ Import with a MySQL administrator account if your application user cannot create
 GRANT SELECT, INSERT, UPDATE, DELETE ON smart_campus_db.* TO 'YOUR_DB_USER'@'YOUR_ACCOUNT_HOST';
 ```
 
-The script creates `smart_campus_db` and three tables. It does not migrate an existing schema. Keep any old `smart_campus_events` database separate. Set the MySQL server time zone to your campus time zone (Sri Lanka: `+05:30`); event dates, times and deadlines are campus-local values without UTC offsets. The API compares them using MySQL's clock.
+For an existing campus database, run `npm run db:migrate:workflow` before starting the updated API. Run it with an account that can alter and create tables. It preserves existing users, events and registrations. Event dates, times and deadlines use Sri Lanka time (`+05:30`).
 
 ```powershell
 npm run db:check
@@ -46,26 +46,51 @@ npm run admin:create
 
 Remove the three `ADMIN_*` values afterward. The script hashes the password with bcrypt and refuses duplicate emails. Student signup always assigns `student`, regardless of a submitted role. Passwords must contain at least six characters and at most 72 UTF-8 bytes.
 
+## Staff and approval workflow
+
+### Enable email invitations
+
+1. In Resend, create a **Sending access** API key. For a local inbox test, use `onboarding@resend.dev` and invite your Resend account's own email address. For real invitations, add a sending domain in Resend and publish the DNS records it provides. Use an address on the verified domain as the sender. Disable click tracking on the sending domain for account links.
+2. Add the settings below to the existing, ignored `backend/.env`. For deployment, add the same variables to the Railway API service. Use the verified sender and the public Vercel frontend URL in production.
+
+   ```dotenv
+   RESEND_API_KEY=your_sending_key
+   STAFF_INVITE_FROM="DBIT Campus <onboarding@resend.dev>"
+   APP_FRONTEND_URL=http://127.0.0.1:5173
+   ```
+
+3. Run `npm --prefix backend run db:migrate:workflow` from the project root to create the invitation table. Restart the local API. For production, run the migration against the deployment database and deploy both the updated API and frontend.
+4. Sign in as Administrator and open **Staff access → Add staff member**. Create an Event Organizer and a Department Coordinator for the same department. Each invitee follows the emailed link, sets their password, and then signs in normally. Choose **Resend invite** if a link expires or email submission fails. Staff who already have a password can continue signing in. For incomplete accounts created before email invitations, use **Send invite** on the staff row.
+
+The organizer saves and submits a draft. The coordinator reviews it in **Review queue** and records a reason when approving, rejecting or requesting changes. Approval publishes the event immediately. Departmental events accept registrations from students in that department. The organizer can view the roster for their published event.
+
 ## Endpoints
 
 | Method | Path | Access |
 | --- | --- | --- |
 | GET | `/` | Public |
 | POST | `/api/auth/register` | Public, creates student |
-| POST | `/api/auth/login` | Public, both roles |
-| GET | `/api/events` | Student/admin, upcoming events |
+| POST | `/api/auth/login` | Public, all roles |
+| GET / POST | `/api/auth/users` | Admin, list staff accounts or create a pending account and send an invitation |
+| PATCH | `/api/auth/users/:id` | Admin, update staff assignment or access |
+| POST | `/api/auth/users/:id/invite` | Admin, send a replacement invitation or a password reset link |
+| POST | `/api/auth/staff-invitations/accept` | Staff with a valid one-time token |
+| POST | `/api/auth/password/setup` | Staff using a previously issued temporary password |
+| GET | `/api/events` | Authenticated, filtered by role and department |
 | GET | `/api/events?all=true` | Admin, includes past events |
-| GET | `/api/events/:id` | Student/admin |
-| POST | `/api/events` | Admin |
-| PUT | `/api/events/:id` | Admin |
-| DELETE | `/api/events/:id` | Admin |
+| GET | `/api/events/:id` | Authenticated, filtered by role and department |
+| POST | `/api/events` | Organizer, creates a draft for their department |
+| PUT | `/api/events/:id` | Organizer for own editable proposals, admin for legacy published events |
+| DELETE | `/api/events/:id` | Organizer for own editable proposals, admin for any event |
+| PATCH | `/api/events/:id/submit` | Organizer, submits own draft or returned proposal |
+| PATCH | `/api/events/:id/review` | Coordinator, decides on pending proposals in their department |
 | POST | `/api/registrations/:eventId` | Student |
 | GET | `/api/registrations/my` | Student |
-| GET | `/api/registrations/event/:eventId` | Admin |
+| GET | `/api/registrations/event/:eventId` | Admin, or organizer for their own event |
 
 Protected requests use `Authorization: Bearer TOKEN`. Lists support `search`, `category`, and `date=YYYY-MM-DD`. Event responses use SQL field names such as `event_date`; input uses camelCase such as `eventDate`. PUT accepts partial event updates. IDs and creators come from the route/JWT, not submitted ownership fields.
 
-Responses contain `success` and `message`; resource responses add `data`. Login returns `token` and safe `user` fields at the top level. Errors never include SQL, credentials, passwords or stack traces. Invalid input: 400; invalid token/login: 401; wrong role: 403; missing resource: 404; duplicate/closed/full registration: 409; unexpected failure: 500.
+Responses include `success` and resource responses include `data`. Login and legacy password setup return `token` and safe `user` fields. The emailed link expires after 24 hours and is consumed when staff save their password. The Admin's staff list shows whether Resend accepted the send request. Actual delivery can be checked in the Resend dashboard.
 
 A same-day event is upcoming until `start_time`; without a start time it stays upcoming through that date. A deadline equal to the database clock is closed. `capacity: null` means unlimited and `capacity: 0` means no seats. Registration transactions lock the event row to enforce capacity under concurrent requests. Deleting an event cascades its registrations.
 
@@ -80,7 +105,7 @@ npm test
 Remove-Item Env:RUN_DB_TESTS
 ```
 
-Integration tests require permission to create/drop a temporary database, named `smart_campus_mvp_test_*`. They never use production tables. See [POSTMAN_TESTING.md](POSTMAN_TESTING.md) for the ordered demonstration guide. Attendance, feedback, notifications, reports and other future modules are excluded.
+Integration tests require permission to create/drop a temporary database, named `smart_campus_mvp_test_*`. They cover the staff approval workflow and compatibility with existing published events.
 
 ## Demo data
 

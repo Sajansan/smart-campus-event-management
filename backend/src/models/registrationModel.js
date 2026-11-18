@@ -6,14 +6,7 @@ async function register(studentId, eventId) {
   try {
     await connection.beginTransaction();
 
-    // 1. Fetch student info to verify department / year eligibility
-    const [students] = await connection.execute("SELECT id, department, academic_year, status FROM users WHERE id = ?", [studentId]);
-    const student = students[0];
-    if (!student || student.status === "suspended") {
-      fail("Account is suspended or invalid", 403);
-    }
-
-    // 2. Fetch and lock event row
+    // Lock before the first consistent read so waiters count already committed registrations.
     const [events] = await connection.execute(
       `SELECT *, 
         (event_date > CURDATE() OR (event_date = CURDATE() AND (start_time IS NULL OR start_time > CURTIME()))) AS upcoming, 
@@ -22,16 +15,19 @@ async function register(studentId, eventId) {
       [eventId]
     );
     const event = events[0];
-    if (!event) fail("Event not found", 404);
-    if (event.status !== "published") fail("This event is not open for registration", 400);
+    if (!event || event.status !== "published") fail("Event not found", 404);
     if (!event.upcoming) fail("This event has already started or passed", 409);
     if (!event.deadline_open) fail("Registration deadline has passed", 409);
 
-    // 3. Eligibility checks (department & academic year)
-    if (event.department && student.department && event.department.toLowerCase() !== student.department.toLowerCase()) {
+    const [students] = await connection.execute("SELECT role, department, academic_year, status FROM users WHERE id = ?", [studentId]);
+    const student = students[0];
+    if (!student || student.role !== "student" || student.status !== "active") {
+      fail("Account is suspended or invalid", 403);
+    }
+    if (event.department && event.department.toLowerCase() !== student.department?.toLowerCase()) {
       fail(`This event is restricted to students of the ${event.department} department`, 403);
     }
-    if (event.target_year && student.academic_year && event.target_year !== student.academic_year) {
+    if (event.target_year && event.target_year !== student.academic_year) {
       fail(`This event is restricted to Year ${event.target_year} students`, 403);
     }
 
@@ -81,7 +77,7 @@ async function register(studentId, eventId) {
 
 async function cancel(studentId, registrationId) {
   const [rows] = await pool.execute(
-    `SELECT r.*, e.event_date, e.start_time 
+    `SELECT r.status, TIMESTAMP(e.event_date, COALESCE(e.start_time, '00:00:00')) >= NOW() + INTERVAL 48 HOUR AS can_cancel
      FROM event_registrations r 
      JOIN events e ON e.id = r.event_id 
      WHERE r.id = ? AND r.student_id = ?`,
@@ -91,20 +87,16 @@ async function cancel(studentId, registrationId) {
   if (!reg) fail("Registration not found", 404);
   if (reg.status === "cancelled") fail("Registration is already cancelled", 400);
 
-  // FR-REG-07: Cancellation allowed up to 48 hours before event starts
-  const eventStartStr = `${reg.event_date} ${reg.start_time || "00:00:00"}`;
-  const eventStartTime = new Date(eventStartStr).getTime();
-  const now = Date.now();
-  const fortyEightHoursMs = 48 * 60 * 60 * 1000;
-
-  if (eventStartTime - now < fortyEightHoursMs) {
+  // Both times are campus-local. The connection uses the campus timezone.
+  if (!reg.can_cancel) {
     fail("Registrations can only be cancelled at least 48 hours before the event starts", 400);
   }
 
-  await pool.execute(
-    "UPDATE event_registrations SET status = 'cancelled', cancelled_at = NOW() WHERE id = ?",
+  const [result] = await pool.execute(
+    "UPDATE event_registrations SET status = 'cancelled', cancelled_at = NOW() WHERE id = ? AND status = 'registered'",
     [registrationId]
   );
+  if (!result.affectedRows) fail("The registration changed. Refresh before trying again.", 409);
 
   return { id: registrationId, status: "cancelled" };
 }
@@ -147,10 +139,12 @@ async function recordCheckIn(eventId, studentUserId, organizerId) {
     fail("Student is already checked in", 409);
   }
 
-  await pool.execute(
-    "UPDATE event_registrations SET attendance_status = 'present', checked_in_at = NOW(), checked_in_by = ? WHERE id = ?",
+  const [result] = await pool.execute(
+    `UPDATE event_registrations SET attendance_status = 'present', checked_in_at = NOW(), checked_in_by = ?
+     WHERE id = ? AND status = 'registered' AND NOT (attendance_status <=> 'present')`,
     [organizerId, reg.id]
   );
+  if (!result.affectedRows) fail("The registration has already been checked in or is no longer active", 409);
 
   return { registrationId: reg.id, attendance_status: "present" };
 }

@@ -5,7 +5,7 @@ import type { Session } from '../lib/api'
 import Icon from './Icon'
 import ThemeToggle from './ThemeToggle'
 
-export default function AuthPage({ onLogin }: { onLogin: (session: Session) => void }) {
+export default function AuthPage({ onLogin, setupSession, onSignOut, invitation, onLeaveInvitation }: { onLogin: (session: Session) => void; setupSession?: Session; onSignOut?: () => void; invitation?: string; onLeaveInvitation?: (message?: string) => void }) {
   const [signup, setSignup] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -18,11 +18,24 @@ export default function AuthPage({ onLogin }: { onLogin: (session: Session) => v
       studentId: String(form.get('studentId') || ''), 
       email: String(form.get('email') || ''), 
       password: String(form.get('password') || ''),
-      role: String(form.get('role') || 'student'),
-      department: String(form.get('department') || '')
+      department: String(form.get('department') || ''),
+      academicYear: String(form.get('academicYear') || ''),
     }
     setBusy(true); setError('')
     try {
+      if (invitation !== undefined || setupSession) {
+        if (body.password !== form.get('confirmPassword')) throw new Error('Passwords must match.')
+      }
+      if (invitation !== undefined) {
+        const result = await api<{ message: string }>('/auth/staff-invitations/accept', { method: 'POST', body: { token: invitation, password: body.password } })
+        onLeaveInvitation?.(result.message)
+        return
+      }
+      if (setupSession) {
+        const updated = await api<Session>('/auth/password/setup', { method: 'POST', token: setupSession.token, body: { password: body.password } })
+        onLogin(updated)
+        return
+      }
       if (signup) await api('/auth/register', { method: 'POST', body })
       const session = await api<Session>('/auth/login', { method: 'POST', body: { email: body.email, password: body.password } })
       onLogin(session)
@@ -67,23 +80,28 @@ export default function AuthPage({ onLogin }: { onLogin: (session: Session) => v
       <footer className="auth-footer"><span>DON BOSCO INFO TECH</span><span>Made for campus moments ↗</span></footer>
     </section>
     <section className="auth-form-area"><div className="auth-theme-toggle"><ThemeToggle/></div><div className="auth-mobile-brand">DBIT / CAMPUS LIFE</div><div className="auth-form-wrap">
+      {invitation !== undefined || setupSession ? <>
+        <h2>Set your password</h2>
+        <p className="muted">{setupSession ? `Choose a private password for ${setupSession.user.email}.` : 'Choose a password for your DBIT staff account.'}</p>
+        <form onSubmit={submit}>
+          <label>New password<input name="password" type="password" autoComplete="new-password" minLength={12} required/></label>
+          <label>Confirm password<input name="confirmPassword" type="password" autoComplete="new-password" minLength={12} required/></label>
+          {error ? <p className="form-error" role="alert">{error}</p> : null}
+          <button className="button primary auth-submit" disabled={busy}>{busy ? 'Saving…' : 'Set password'}<Icon name="arrow"/></button>
+          <button type="button" className="text-button" onClick={() => invitation !== undefined ? onLeaveInvitation?.() : onSignOut?.()} disabled={busy}>{invitation !== undefined ? 'Back to sign in' : 'Sign out'}</button>
+        </form>
+      </> : <>
       <span className="eyebrow">YOUR CAMPUS, CONNECTED</span><h2>{signup ? 'Find your place.' : 'Welcome back.'}</h2><p className="muted">{signup ? 'One account. A whole campus of possibilities.' : 'A good campus day starts here.'}</p>
       <div className="auth-tabs" aria-label="Account access"><button type="button" className={!signup ? 'active' : ''} onClick={() => { setSignup(false); setError('') }}>Sign in</button><button type="button" className={signup ? 'active' : ''} onClick={() => { setSignup(true); setError('') }}>Create account</button></div>
       <form onSubmit={submit} key={signup ? 'signup' : 'login'}>
         {signup ? <>
           <div className="form-row">
             <label>Full name<input name="name" autoComplete="name" placeholder="Your full name" maxLength={100} required/></label>
-            <label>Role
-              <select name="role" defaultValue="student" style={{ width: '100%', height: '42px', borderRadius: '8px', padding: '0 10px', background: 'var(--surface-raised, #1e1e24)', color: 'inherit', border: '1px solid var(--border-subtle, #333)' }}>
-                <option value="student">Student</option>
-                <option value="organizer">Event Organizer</option>
-                <option value="coordinator">Department Coordinator</option>
-              </select>
-            </label>
+            <label>Student ID<input name="studentId" placeholder="e.g. DBIT001" maxLength={50} required/></label>
           </div>
           <div className="form-row">
-            <label>Student / Staff ID<input name="studentId" placeholder="e.g. DBIT001" maxLength={50}/></label>
             <label>Department<input name="department" placeholder="e.g. Computing, Engineering" maxLength={100}/></label>
+            <label>Academic year<input name="academicYear" type="number" min={1} max={5} placeholder="Optional"/></label>
           </div>
         </> : null}
         <label>Email address<input name="email" type="email" autoComplete="email" placeholder="you@example.com" maxLength={150} required/></label>
@@ -91,7 +109,8 @@ export default function AuthPage({ onLogin }: { onLogin: (session: Session) => v
         {error ? <p className="form-error" role="alert">{error}</p> : null}
         <button className="button primary auth-submit" disabled={busy}>{busy ? 'Just a moment…' : signup ? 'Create student account' : 'Step inside'}<Icon name="arrow"/></button>
       </form>
-      <div className="auth-note"><Icon name="shield" size={18}/><p>{signup ? 'Student accounts are for DBIT students. Administrators are added by the campus team.' : 'Students and administrators sign in here. Your account takes you to the right place.'}</p></div>
+      <div className="auth-note"><Icon name="shield" size={18}/><p>{signup ? 'Student accounts are for DBIT students. Ask the campus administrator for staff access.' : 'Students and staff sign in here. Your account takes you to the right place.'}</p></div>
+      </>}
     </div><p className="auth-bottom">A little curiosity can take you a long way.</p></section>
   </main>
 }

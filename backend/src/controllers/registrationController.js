@@ -1,5 +1,6 @@
 const registrations = require("../models/registrationModel");
 const events = require("../models/eventModel");
+const { ownsProposal, publicEvent } = events;
 const validate = require("../utils/validation");
 
 async function register(req, res) {
@@ -14,7 +15,8 @@ async function cancel(req, res) {
 }
 
 async function mine(req, res) {
-  res.json({ success: true, message: "Your registrations retrieved successfully", data: await registrations.mine(req.user.id) });
+  const list = await registrations.mine(req.user.id);
+  res.json({ success: true, message: "Your registrations retrieved successfully", data: list.map(publicEvent) });
 }
 
 async function forEvent(req, res) {
@@ -23,7 +25,7 @@ async function forEvent(req, res) {
   if (!event) validate.fail("Event not found", 404);
 
   // Admin can see any event; Organizer can only see events they created
-  if (req.user.role === "organizer" && event.created_by !== req.user.id) {
+  if (req.user.role === "organizer" && !ownsProposal(req.user, event)) {
     validate.fail("You can only view attendee rosters for your own events", 403);
   }
 
@@ -36,7 +38,7 @@ async function checkIn(req, res) {
   const event = await events.findById(eventId);
   if (!event) validate.fail("Event not found", 404);
 
-  if (req.user.role === "organizer" && event.created_by !== req.user.id) {
+  if (req.user.role === "organizer" && !ownsProposal(req.user, event)) {
     validate.fail("You can only record attendance for your own events", 403);
   }
 

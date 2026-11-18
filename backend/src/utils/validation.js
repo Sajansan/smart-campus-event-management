@@ -25,11 +25,17 @@ function email(value) {
   return result;
 }
 
-function password(value) {
-  if (typeof value !== "string" || value.length < 6 || Buffer.byteLength(value, "utf8") > 72) {
-    fail("Password must have at least 6 characters and at most 72 UTF-8 bytes");
+function password(value, minimum = 6) {
+  if (typeof value !== "string" || value.length < minimum || Buffer.byteLength(value, "utf8") > 72) {
+    fail(`Password must have at least ${minimum} characters and at most 72 UTF-8 bytes`);
   }
   return value;
+}
+
+function academicYear(value) {
+  if (value == null || value === "") return null;
+  if (!/^[1-5]$/.test(String(value))) fail("Academic year must be between 1 and 5");
+  return Number(value);
 }
 
 function date(value) {
@@ -55,7 +61,7 @@ function event(body) {
     category: text(body.category, "Category", 100),
     location: text(body.location, "Location", 150),
     department: text(body.department, "Department", 100),
-    targetYear: body.targetYear ? Number(body.targetYear) : null,
+    targetYear: academicYear(body.targetYear),
     eventDate: date(body.eventDate),
     startTime: time(body.startTime),
     endTime: time(body.endTime),
@@ -78,4 +84,4 @@ function event(body) {
   return result;
 }
 
-module.exports = { fail, id, text, email, password, date, event };
+module.exports = { fail, id, text, email, password, academicYear, date, time, event };

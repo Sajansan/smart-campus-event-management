@@ -1,5 +1,7 @@
 export type UserRole = 'student' | 'organizer' | 'coordinator' | 'admin'
-export type User = { id: number; studentId: string | null; name: string; email: string; role: UserRole; department?: string | null; academicYear?: number | null; status?: 'active' | 'suspended' }
+export type User = { id: number; studentId: string | null; name: string; email: string; role: UserRole; department?: string | null; academicYear?: number | null; status?: 'active' | 'suspended'; staffVerified?: boolean; mustChangePassword?: boolean; invitationStatus?: 'pending' | 'sent' | 'failed' | 'expired' | null }
+export type ReviewDecision = 'approved' | 'rejected' | 'revision_requested'
+export const roleLabels: Record<UserRole, string> = { student: 'Student', organizer: 'Event Organizer', coordinator: 'Department Coordinator', admin: 'Administrator' }
 export type Session = { token: string; user: User }
 export type CampusEvent = { 
   id: number; 
@@ -16,6 +18,7 @@ export type CampusEvent = {
   capacity: number | null; 
   status?: 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'revision_requested' | 'published' | 'cancelled' | 'completed';
   rejection_reason?: string | null;
+  approved_by?: number | null;
   created_by: number; 
   registered_at?: string; 
   registration_id?: number;
@@ -24,6 +27,14 @@ export type CampusEvent = {
 export type Attendee = { registration_id: number; student_user_id: number; student_id: string; name: string; email: string; registered_at: string; attendance_status?: string }
 export type Result<T> = { success: boolean; message: string; data: T }
 export type EventInput = { title: string; description: string; category: string; location: string; eventDate: string; startTime: string | null; endTime: string | null; registrationDeadline: string | null; capacity: number | null; department?: string | null; targetYear?: number | null }
+
+export function eventStatus(event: CampusEvent) {
+  return { draft: 'Draft', pending_approval: 'Awaiting review', approved: 'Approved', rejected: 'Rejected', revision_requested: 'Changes requested', published: 'Published', cancelled: 'Cancelled', completed: 'Completed' }[event.status ?? 'published']
+}
+
+export function editableProposal(event: CampusEvent) {
+  return event.status === 'draft' || event.status === 'revision_requested'
+}
 
 const key = 'dbit:session:v1'
 export function readSession(): Session | null {
@@ -48,6 +59,9 @@ export async function api<T>(route: string, options: { token?: string; method?: 
     })
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error
+    if (error instanceof DOMException && error.name === 'TimeoutError') {
+      throw new Error('The campus service took too long to respond. Refresh to check the result before retrying.', { cause: error })
+    }
     throw new Error('We couldn’t connect to campus. Check your connection and try again.', { cause: error })
   }
   const result = await response.json().catch(() => ({ message: 'The campus service is temporarily unavailable. Please try again.' }))

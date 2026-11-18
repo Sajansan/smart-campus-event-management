@@ -87,10 +87,21 @@ async function main() {
       { title: 'DBIT Demo - Sports Day', description: 'Team sports and activities for campus students.', category: 'Sports', location: 'DBIT Sports Ground', eventDate: dates.second, startTime: '08:30:00', endTime: '16:00:00', registrationDeadline: dates.deadline, capacity: 100 },
       { title: 'DBIT Demo - Career Guidance', description: 'CV preparation and interview practice.', category: 'Seminar', location: 'DBIT Main Hall', eventDate: dates.third, startTime: '10:00:00', endTime: '13:00:00', registrationDeadline: dates.deadline, capacity: 80 },
     ];
+    // These fixtures exercise compatibility with campus-wide events published before staff approvals.
+    async function insertLegacyDemoEvent(details) {
+      const [result] = await pool.execute(
+        `INSERT INTO events (title, description, category, location, event_date, start_time, end_time, registration_deadline, capacity, created_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [details.title, details.description, details.category, details.location, details.eventDate,
+          details.startTime, details.endTime, details.registrationDeadline, details.capacity, adminId]
+      );
+      return result.insertId;
+    }
     const events = [];
     for (const details of eventDetails) {
       const [[existing]] = await pool.execute('SELECT id FROM events WHERE created_by = ? AND title = ? ORDER BY id LIMIT 1', [adminId, details.title]);
-      const event = existing ? (await request('GET', `/api/events/${existing.id}`, undefined, adminToken)).data : (await request('POST', '/api/events', details, adminToken, 201)).data;
+      const id = existing?.id || await insertLegacyDemoEvent(details);
+      const event = (await request('GET', `/api/events/${id}`, undefined, adminToken)).data;
       assert.equal(event.created_by, adminId);
       events.push(event);
     }
@@ -119,14 +130,14 @@ async function main() {
     await request('POST', '/api/auth/login', { email: adminEmail, password: 'deliberately-wrong' }, undefined, 401);
     await request('GET', '/api/events', undefined, undefined, 401);
     await request('POST', '/api/events', eventDetails[0], studentToken, 403);
+    await request('POST', '/api/events', eventDetails[0], adminToken, 403);
     await request('PUT', `/api/events/${events[0].id}`, { title: 'Forbidden' }, studentToken, 403);
     await request('DELETE', `/api/events/${events[0].id}`, undefined, studentToken, 403);
     await request('GET', `/api/registrations/event/${events[0].id}`, undefined, studentToken, 403);
     await request('GET', '/api/registrations/my', undefined, adminToken, 403);
     await request('POST', `/api/registrations/${events[0].id}`, undefined, adminToken, 403);
     // Exercise update/delete using a new disposable event; preserve all demo events.
-    const disposable = await request('POST', '/api/events', { ...eventDetails[0], title: 'Disposable DB verification event' }, adminToken, 201);
-    disposableEventId = disposable.data.id;
+    disposableEventId = await insertLegacyDemoEvent({ ...eventDetails[0], title: 'Disposable DB verification event', location: 'Test Hall' });
     await request('POST', `/api/registrations/${disposableEventId}`, undefined, studentToken, 201);
     const updated = await request('PUT', `/api/events/${disposableEventId}`, { location: 'Updated Test Hall' }, adminToken);
     assert.equal(updated.data.location, 'Updated Test Hall');

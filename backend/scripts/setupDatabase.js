@@ -1,6 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const mysql = require("mysql2/promise");
+const migrateWorkflow = require("./migrateWorkflow");
 require("dotenv").config({ path: path.resolve(__dirname, "../.env"), quiet: true });
 
 async function main() {
@@ -27,7 +28,8 @@ async function main() {
     }
     const schema = fs.readFileSync(path.resolve(__dirname, "../database/schema.sql"), "utf8");
     await connection.query(schema);
-    console.log("smart_campus_db is ready: users, events, event_registrations.");
+    await migrateWorkflow(connection);
+    console.log("smart_campus_db is ready.");
   } catch (error) {
     console.error(error.code ? `Database setup failed (${error.code}). Check MySQL permissions and backend/.env.` : error.message);
     process.exitCode = 1;

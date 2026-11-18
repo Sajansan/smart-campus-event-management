@@ -5,12 +5,12 @@ import Icon from './Icon'
 
 export default function EventForm({ 
   event, 
-  role = 'admin',
+  department,
   onSave, 
   onCancel 
 }: { 
   event?: CampusEvent; 
-  role?: string;
+  department?: string | null;
   onSave: (input: EventInput) => Promise<void>; 
   onCancel: () => void 
 }) {
@@ -26,7 +26,6 @@ export default function EventForm({
       description: value('description'), 
       category: value('category'), 
       location: value('location'), 
-      department: value('department') || null,
       targetYear: value('targetYear') ? Number(value('targetYear')) : null,
       eventDate: value('eventDate'), 
       startTime: value('startTime') || null, 
@@ -38,8 +37,8 @@ export default function EventForm({
   }
 
   return <form className="event-form" onSubmit={submit}>
-    <h2>{event ? 'Make it even better.' : role === 'organizer' ? 'Draft Event Proposal' : 'Bring campus together.'}</h2>
-    <p className="muted">{event ? 'Update the details below. Students will see your changes.' : role === 'organizer' ? 'Enter the event details to create a proposal for coordinator review.' : 'A great event starts with the details.'}</p>
+    <h2>{event ? 'Edit event details' : 'Draft an event proposal'}</h2>
+    <p className="muted">{event?.status === 'published' ? 'Saved changes are visible to students.' : 'Save your details before submitting the proposal for review.'}</p>
     <label>Event title<input name="title" placeholder="Give your event a memorable name" defaultValue={event?.title} maxLength={150} required/></label>
     <label>Description<textarea name="description" placeholder="What can students look forward to?" defaultValue={event?.description || ''} rows={3} maxLength={16000}/></label>
     <div className="form-row">
@@ -47,7 +46,7 @@ export default function EventForm({
       <label>Location / Venue<input name="location" placeholder="e.g. Auditorium A" defaultValue={event?.location || ''} maxLength={150}/></label>
     </div>
     <div className="form-row">
-      <label>Department<input name="department" placeholder="e.g. Computing, Engineering" defaultValue={event?.department || ''} maxLength={100}/></label>
+      <label>Department<input value={department || event?.department || 'Campus-wide'} readOnly/></label>
       <label>Target Academic Year<input type="number" name="targetYear" min={1} max={5} placeholder="Leave empty for all years" defaultValue={event?.target_year ?? ''}/></label>
     </div>
     <div className="form-row three">
@@ -63,7 +62,7 @@ export default function EventForm({
     <div className="form-actions">
       <button type="button" className="button secondary" disabled={busy} onClick={onCancel}>Cancel</button>
       <button className="button primary" disabled={busy}>
-        {busy ? 'Saving…' : event ? 'Save changes' : role === 'organizer' ? 'Create Proposal' : 'Publish event'}
+        {busy ? 'Saving…' : event ? 'Save changes' : 'Save draft'}
         <Icon name="arrow" size={17}/>
       </button>
     </div>

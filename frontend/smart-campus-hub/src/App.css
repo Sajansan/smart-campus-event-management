@@ -558,6 +558,7 @@ label {
 }
 
 label input,
+label select,
 label textarea {
   width: 100%;
   padding: 13px 16px;
@@ -2302,9 +2303,29 @@ textarea {
 }
 
 .event-form input,
+.event-form select,
 .event-form textarea {
   font-size: 12px;
   padding: 11px 14px;
+}
+
+.event-form .staff-checkbox {
+  flex-direction: row;
+  align-items: center;
+}
+
+.event-form .staff-checkbox input {
+  width: auto;
+  min-height: auto;
+  accent-color: var(--ink);
+}
+
+.proposal-review {
+  margin-top: 24px;
+}
+
+.proposal-review h3 {
+  margin-bottom: 14px;
 }
 
 .form-actions {

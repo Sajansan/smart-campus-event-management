@@ -23,7 +23,7 @@ app.use((error, req, res, next) => {
   if (error.code === "ER_DUP_ENTRY") return res.status(409).json({ success: false, message: "Email, student ID, or event registration already exists" });
   if (error.type === "entity.parse.failed") return res.status(400).json({ success: false, message: "Invalid JSON body" });
   if (error.type === "entity.too.large") return res.status(413).json({ success: false, message: "Request body is too large" });
-  if (error.status && error.status >= 400 && error.status < 500) return res.status(error.status).json({ success: false, message: error.message });
+  if (error.status === 503 || (error.status >= 400 && error.status < 500)) return res.status(error.status).json({ success: false, message: error.message });
   console.error("Request failed:", error.code || "INTERNAL_ERROR");
   res.status(500).json({ success: false, message: "Internal server error" });
 });
